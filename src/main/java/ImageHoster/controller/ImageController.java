@@ -39,9 +39,16 @@ public class ImageController {
     //Also now you need to add the tags of an image in the Model type object
     //Here a list of tags is added in the Model type object
     //this list is then sent to 'images/image.html' file and the tags are displayed
+
     @RequestMapping("/images/{imageId}/{title}")
     public String showImage(@PathVariable("imageId") Integer imageId, @PathVariable("title") String title, Model model) {
         Image image = imageService.getImage(imageId);
+
+    @RequestMapping("/images/{id}/{title}")
+    public String showImage(@PathVariable("id") Integer id,
+                            @PathVariable("title") String title,
+                            Model model) {
+        Image image = imageService.getImage(id);
         model.addAttribute("image", image);
         model.addAttribute("tags", image.getTags());
         model.addAttribute("comments",image.getComments());
@@ -98,6 +105,19 @@ public class ImageController {
             model.addAttribute("comments",image.getComments());
             return "images/image";
         }
+        User loggeduser = (User) session.getAttribute("loggeduser");
+
+        String tags = convertTagsToString(image.getTags());
+        model.addAttribute("image", image);
+        model.addAttribute("tags", tags);
+
+        //Check if the user of the current image is same as that of logged-in user
+        if (!image.getUser().getId().equals(loggeduser.getId())) {
+            String error = "Only the owner of the image can edit the image";
+            model.addAttribute("editError", error);
+            return "images/image";
+        }
+        return "images/edit";
     }
     //This controller method is called when the request pattern is of type 'images/edit' and also the incoming request is of PUT type
     //The method receives the imageFile, imageId, updated image, along with the Http Session
@@ -149,6 +169,21 @@ public class ImageController {
         } else {
             return "images/image";
         }
+    public String deleteImageSubmit(@RequestParam(name = "imageId") Integer imageId, Model model, HttpSession session) {
+        Image currentImage = imageService.getImage(imageId);
+        String tags = convertTagsToString(currentImage.getTags());
+        model.addAttribute("image", currentImage);
+        model.addAttribute("tags", tags);
+
+        //If current image dont belongs to logged in user
+        User loggeduser = (User) session.getAttribute("loggeduser");
+        if (!currentImage.getUser().getId().equals(loggeduser.getId())) {
+            String error = "Only the owner of the image can delete the image";
+            model.addAttribute("deleteError", error);
+            return "images/image";
+        }
+        imageService.deleteImage(imageId);
+        return "redirect:/images";
     }
 
 
